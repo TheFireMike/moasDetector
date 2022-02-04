@@ -47,7 +47,7 @@ func main() {
 		log.Fatal().Err(err).Msg("handling route announcements failed")
 	}
 
-	err = r.PrintMOAS(*output)
+	err = r.PrintMOASPrefixes(*output)
 	if err != nil {
 		log.Fatal().Err(err).Msg("printing moas failed")
 	}

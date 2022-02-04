@@ -33,6 +33,22 @@ type Peer struct {
 	IP string `json:"ip"`
 }
 
+type Statistics struct {
+	IPv4Prefixes     int              `json:"ipv4_prefixes"`
+	IPv6Prefixes     int              `json:"ipv6_prefixes"`
+	IPv4MOASPrefixes int              `json:"ipv4_moas_prefixes"`
+	IPv6MOASPrefixes int              `json:"ipv6_moas_prefixes"`
+	Peers            []PeerStatistics `json:"peers"`
+}
+
+type PeerStatistics struct {
+	Peer
+	IPv4Prefixes     int `json:"ipv4_prefixes"`
+	IPv6Prefixes     int `json:"ipv6_prefixes"`
+	IPv4MOASPrefixes int `json:"ipv4_moas_prefixes"`
+	IPv6MOASPrefixes int `json:"ipv6_moas_prefixes"`
+}
+
 type RouteAnnouncement struct {
 	Prefix     net.IPNet
 	OriginAS   string
@@ -106,35 +122,28 @@ func (r *routeData) addRoute(announcement RouteAnnouncement) {
 	}
 }
 
-func (r *Routes) PrintMOAS(directory string) error {
-	err := r.routesIPv4.printMOASToFile(directory, "moasIPv4.json")
+func (r *Routes) PrintMOASPrefixes(directory string) error {
+	moasIPv4 := r.routesIPv4.getMOASPrefixes()
+	err := printJSON(moasIPv4, directory, "moasIPv4.json")
 	if err != nil {
 		return errors.Wrap(err, "failed to print IPv4 MOAS file")
 	}
-	err = r.routesIPv6.printMOASToFile(directory, "moasIPv6.json")
+
+	moasIPv6 := r.routesIPv6.getMOASPrefixes()
+	err = printJSON(moasIPv6, directory, "moasIPv6.json")
 	if err != nil {
 		return errors.Wrap(err, "failed to print IPv6 MOAS file")
 	}
-	err = r.printPeers(directory, "peers.json")
+
+	err = printJSON(r.getStatistics(moasIPv4, moasIPv6), directory, "statistics.json")
 	if err != nil {
-		return errors.Wrap(err, "failed to print peers file")
+		return errors.Wrap(err, "failed to print statistics file")
 	}
+
 	return nil
 }
 
-func (r *Routes) printPeers(directory, filename string) error {
-	d, err := json.Marshal(r.peers)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal peers to JSON")
-	}
-	err = os.WriteFile(filepath.Join(directory, filename), d, 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to write peers file")
-	}
-	return nil
-}
-
-func (r *routeData) printMOASToFile(directory, filename string) error {
+func (r *routeData) getMOASPrefixes() []MOASPrefix {
 	var moas []MOASPrefix
 
 	for prefix, origins := range r.prefixes {
@@ -152,15 +161,80 @@ func (r *routeData) printMOASToFile(directory, filename string) error {
 		}
 	}
 
-	d, err := json.Marshal(moas)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal MOAS to JSON")
+	return moas
+}
+
+func (r *Routes) getStatistics(moasIPv4, moasIPv6 []MOASPrefix) Statistics {
+	statistics := Statistics{
+		IPv4Prefixes:     len(r.routesIPv4.prefixes),
+		IPv6Prefixes:     len(r.routesIPv6.prefixes),
+		IPv4MOASPrefixes: len(moasIPv4),
+		IPv6MOASPrefixes: len(moasIPv6),
 	}
-	err = os.WriteFile(filepath.Join(directory, filename), d, 0644)
-	if err != nil {
-		return errors.Wrap(err, "failed to write MOAS file")
+
+	peerStatistics := make(map[Peer]PeerStatistics)
+
+	for prefix, origins := range r.routesIPv4.prefixes {
+		var prefixPeers []Peer
+		var prefixIsMOAS bool
+		for _, moasPrefix := range moasIPv4 {
+			if moasPrefix.Prefix == prefix {
+				prefixIsMOAS = true
+				break
+			}
+		}
+		for _, receivedByPeers := range origins {
+			prefixPeers = append(prefixPeers, receivedByPeers...)
+		}
+		for _, prefixPeer := range getUniquePeers(prefixPeers) {
+			peerStatistic, ok := peerStatistics[prefixPeer]
+			if !ok {
+				peerStatistic.Peer = prefixPeer
+			}
+			peerStatistic.IPv4Prefixes += 1
+			if prefixIsMOAS {
+				peerStatistic.IPv4MOASPrefixes += 1
+			}
+			peerStatistics[prefixPeer] = peerStatistic
+		}
 	}
-	return nil
+
+	for prefix, origins := range r.routesIPv6.prefixes {
+		var prefixPeers []Peer
+		var prefixIsMOAS bool
+		for _, moasPrefix := range moasIPv6 {
+			if moasPrefix.Prefix == prefix {
+				prefixIsMOAS = true
+				break
+			}
+		}
+		for _, receivedByPeers := range origins {
+			prefixPeers = append(prefixPeers, receivedByPeers...)
+		}
+		for _, prefixPeer := range getUniquePeers(prefixPeers) {
+			peerStatistic, ok := peerStatistics[prefixPeer]
+			if !ok {
+				peerStatistic.Peer = prefixPeer
+			}
+			peerStatistic.IPv6Prefixes += 1
+			if prefixIsMOAS {
+				peerStatistic.IPv6MOASPrefixes += 1
+			}
+			peerStatistics[prefixPeer] = peerStatistic
+		}
+	}
+
+	for _, peer := range r.peers {
+		if peerStatistic, ok := peerStatistics[peer]; ok {
+			statistics.Peers = append(statistics.Peers, peerStatistic)
+		} else {
+			statistics.Peers = append(statistics.Peers, PeerStatistics{
+				Peer: peer,
+			})
+		}
+	}
+
+	return statistics
 }
 
 func getUniquePeers(peers []Peer) []Peer {
@@ -173,4 +247,16 @@ func getUniquePeers(peers []Peer) []Peer {
 		}
 	}
 	return uniquePeers
+}
+
+func printJSON(data interface{}, directory, filename string) error {
+	d, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal data to JSON")
+	}
+	err = os.WriteFile(filepath.Join(directory, filename), d, 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to write file")
+	}
+	return nil
 }
