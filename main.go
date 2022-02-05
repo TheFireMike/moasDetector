@@ -8,10 +8,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var dir = flag.String("dir", "", "input file directory")
 var output = flag.String("output", ".", "output directory")
+var peers = flag.String("peers", "", "peers to process announcements from (comma seperated list of ASNs)")
 
 func init() {
 	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
@@ -39,7 +41,11 @@ func init() {
 func main() {
 	channels := routes.NewChannels()
 
-	go parser.ProcessFiles(*dir, channels)
+	if *peers != "" {
+		go parser.ProcessFiles(*dir, channels, strings.Split(*peers, ","))
+	} else {
+		go parser.ProcessFiles(*dir, channels, nil)
+	}
 
 	r := routes.NewRoutes()
 	err := r.HandleAnnouncements(channels)

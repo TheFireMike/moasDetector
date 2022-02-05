@@ -18,14 +18,20 @@ import (
 )
 
 type mrtFile struct {
-	name     string
-	logger   zerolog.Logger
-	channels routes.Channels
-	peers    []routes.Peer
+	name        string
+	logger      zerolog.Logger
+	channels    routes.Channels
+	peers       []routes.Peer
+	wantedPeers map[string]struct{}
 }
 
-func ProcessFiles(directory string, channels routes.Channels) {
+func ProcessFiles(directory string, channels routes.Channels, peers []string) {
 	defer channels.Close()
+
+	peersMap := make(map[string]struct{})
+	for _, peer := range peers {
+		peersMap[peer] = struct{}{}
+	}
 
 	wg := sync.WaitGroup{}
 	err := filepath.WalkDir(directory, func(s string, d fs.DirEntry, err error) error {
@@ -35,9 +41,10 @@ func ProcessFiles(directory string, channels routes.Channels) {
 		if !d.IsDir() {
 			wg.Add(1)
 			f := mrtFile{
-				name:     s,
-				logger:   log.With().Str("file", s).Logger(),
-				channels: channels,
+				name:        s,
+				logger:      log.With().Str("file", s).Logger(),
+				channels:    channels,
+				wantedPeers: peersMap,
 			}
 			go f.process(&wg)
 		}
@@ -117,6 +124,15 @@ func (f *mrtFile) addPeerInformation(peers *mrt.TableDumpV2PeerIndexTable) {
 			IP: peer.PeerIPAddress.String(),
 		})
 	}
+
+	if len(f.wantedPeers) == 0 {
+		peersMap := make(map[string]struct{})
+		for _, peer := range f.peers {
+			peersMap[peer.AS] = struct{}{}
+		}
+		f.wantedPeers = peersMap
+	}
+
 	f.channels.Peers <- f.peers
 }
 
@@ -129,7 +145,9 @@ func (f *mrtFile) processMRTEntry(mrtEntry *mrt.TableDumpV2RIB) {
 		}
 
 		for _, ribEntry := range mrtEntry.RIBEntries {
-			f.processRIBEntry(ribEntry, *mrtEntry.Prefix)
+			if _, ok := f.wantedPeers[f.peers[ribEntry.PeerIndex].AS]; ok {
+				f.processRIBEntry(ribEntry, *mrtEntry.Prefix)
+			}
 		}
 	}
 }
