@@ -206,13 +206,13 @@ func (f *mrtFile) processRIBEntry(ribEntry *mrt.TableDumpV2RIBEntry, prefix net.
 
 			if prefix.IP.To4() != nil {
 				f.channels.IPv4 <- routes.RouteAnnouncement{
-					Prefix:     prefix,
+					Prefix:     prefix.String(),
 					OriginAS:   originAS,
 					ReceivedBy: f.peers[ribEntry.PeerIndex],
 				}
 			} else {
 				f.channels.IPv6 <- routes.RouteAnnouncement{
-					Prefix:     prefix,
+					Prefix:     prefix.String(),
 					OriginAS:   originAS,
 					ReceivedBy: f.peers[ribEntry.PeerIndex],
 				}

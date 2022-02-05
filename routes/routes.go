@@ -3,7 +3,6 @@ package routes
 import (
 	"encoding/json"
 	"github.com/pkg/errors"
-	"net"
 	"os"
 	"path/filepath"
 )
@@ -50,7 +49,7 @@ type PeerStatistics struct {
 }
 
 type RouteAnnouncement struct {
-	Prefix     net.IPNet
+	Prefix     string
 	OriginAS   string
 	ReceivedBy Peer
 }
@@ -109,15 +108,15 @@ func (r *routeData) handleAnnouncements(announcementChan chan RouteAnnouncement)
 }
 
 func (r *routeData) addRoute(announcement RouteAnnouncement) {
-	if res, ok := r.prefixes[announcement.Prefix.String()]; !ok {
-		r.prefixes[announcement.Prefix.String()] = map[string][]Peer{
+	if res, ok := r.prefixes[announcement.Prefix]; !ok {
+		r.prefixes[announcement.Prefix] = map[string][]Peer{
 			announcement.OriginAS: {announcement.ReceivedBy},
 		}
 	} else {
 		if feeders, ok := res[announcement.OriginAS]; !ok {
-			r.prefixes[announcement.Prefix.String()][announcement.OriginAS] = []Peer{announcement.ReceivedBy}
+			r.prefixes[announcement.Prefix][announcement.OriginAS] = []Peer{announcement.ReceivedBy}
 		} else {
-			r.prefixes[announcement.Prefix.String()][announcement.OriginAS] = append(feeders, announcement.ReceivedBy)
+			r.prefixes[announcement.Prefix][announcement.OriginAS] = append(feeders, announcement.ReceivedBy)
 		}
 	}
 }
