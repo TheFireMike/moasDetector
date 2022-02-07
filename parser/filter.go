@@ -11,6 +11,10 @@ func filterPrefix(prefix net.IPNet) error {
 		return errors.New("prefix size of 0")
 	}
 
+	if !prefix.IP.Mask(prefix.Mask).Equal(prefix.IP) {
+		return errors.New("prefix contains bits not in mask")
+	}
+
 	if prefix.IP.To4() != nil {
 		// https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml
 		if prefix.IP[0] == 0 || // "This network"

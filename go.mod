@@ -3,7 +3,7 @@ module github.com/TheFireMike/moasDetector
 go 1.17
 
 require (
-	github.com/TheFireMike/go-mrt v0.0.0-20220130221448-b77ec37fdac6
+	github.com/TheFireMike/go-mrt v0.0.0-20220205210421-b3040c1c0b7e
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.26.0
 	github.com/stretchr/testify v1.7.0
