@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"sync"
@@ -25,7 +26,7 @@ type mrtFile struct {
 	wantedPeers map[string]struct{}
 }
 
-func ProcessFiles(directory string, channels routes.Channels, peers []string) {
+func ProcessFiles(directory string, channels routes.Channels, peers []string, ignoreRegex *string) {
 	defer channels.Close()
 
 	peersMap := make(map[string]struct{})
@@ -37,6 +38,11 @@ func ProcessFiles(directory string, channels routes.Channels, peers []string) {
 	err := filepath.WalkDir(directory, func(s string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
+		}
+		if ignoreRegex != nil {
+			if match, err := regexp.MatchString(*ignoreRegex, s); err == nil && match {
+				return nil
+			}
 		}
 		if !d.IsDir() {
 			wg.Add(1)
