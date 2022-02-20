@@ -1,0 +1,16 @@
+# .goreleaser.yml
+
+builds:
+  - id: "moasDetector"
+
+    main: ./main.go
+    binary: moasDetector
+
+archives:
+  - builds:
+      - moasDetector
+
+    replacements:
+      amd64: 64-bit
+      386: 32-bit
+      darwin: macOS
