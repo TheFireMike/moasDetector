@@ -14,7 +14,7 @@ import (
 
 var dir = flag.String("dir", "", "input file directory (required)")
 var output = flag.String("output", ".", "output directory")
-var peers = flag.String("peers", "", "peers to process announcements from (comma seperated list of ASNs) (default all)")
+var peers = flag.String("peers", "", "peers to process announcements from (comma separated list of ASNs) (default all)")
 var maxCPUs = flag.Int("max-cpus", 0, "limit the number of used CPUs (default 0 => no limit)")
 var ignore = flag.String("ignore", "", "ignore files whose path matches this regex")
 
