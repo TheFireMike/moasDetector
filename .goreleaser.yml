@@ -3,6 +3,10 @@
 builds:
   - id: "moasDetector"
 
+    ignore:
+      - goos: linux
+        goarch: 386
+
     main: ./main.go
     binary: moasDetector
 
@@ -12,5 +16,4 @@ archives:
 
     replacements:
       amd64: 64-bit
-      386: 32-bit
       darwin: macOS
