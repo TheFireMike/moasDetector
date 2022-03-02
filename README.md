@@ -1,7 +1,7 @@
 # MOAS Detector
-[![Go Report Card](https://goreportcard.com/badge/github.com/thefiremike/moasdetector)](https://goreportcard.com/report/github.com/thefiremike/moasdetector)
-[![GitHub license](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/thefiremike/moasdetector/blob/main/LICENSE)
-[![GoDoc doc](https://img.shields.io/badge/godoc-reference-blue)](https://godoc.org/github.com/thefiremike/moasdetector)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TheFireMike/moasDetector)](https://goreportcard.com/report/github.com/TheFireMike/moasDetector)
+[![GitHub license](https://img.shields.io/badge/license-BSD-blue.svg)](https://github.com/TheFireMike/moasDetector/blob/main/LICENSE)
+[![GoDoc doc](https://img.shields.io/badge/godoc-reference-blue)](https://godoc.org/github.com/TheFireMike/moasDetector)
 
 A tool which detects multiple origin AS (MOAS) prefixes based on BGP routing information in the MRT format.
 
