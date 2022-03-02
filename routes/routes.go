@@ -171,16 +171,23 @@ func (r *Routes) getStatistics(moasIPv4, moasIPv6 []MOASPrefix) Statistics {
 		IPv6MOASPrefixes: len(moasIPv6),
 	}
 
+	moasIPv4Lookup := make(map[string]struct{})
+	for _, prefix := range moasIPv4 {
+		moasIPv4Lookup[prefix.Prefix] = struct{}{}
+	}
+
+	moasIPv6Lookup := make(map[string]struct{})
+	for _, prefix := range moasIPv6 {
+		moasIPv6Lookup[prefix.Prefix] = struct{}{}
+	}
+
 	peerStatistics := make(map[Peer]PeerStatistics)
 
 	for prefix, origins := range r.routesIPv4.prefixes {
 		var prefixPeers []Peer
 		var prefixIsMOAS bool
-		for _, moasPrefix := range moasIPv4 {
-			if moasPrefix.Prefix == prefix {
-				prefixIsMOAS = true
-				break
-			}
+		if _, ok := moasIPv4Lookup[prefix]; ok {
+			prefixIsMOAS = true
 		}
 		for _, receivedByPeers := range origins {
 			prefixPeers = append(prefixPeers, receivedByPeers...)
@@ -201,11 +208,8 @@ func (r *Routes) getStatistics(moasIPv4, moasIPv6 []MOASPrefix) Statistics {
 	for prefix, origins := range r.routesIPv6.prefixes {
 		var prefixPeers []Peer
 		var prefixIsMOAS bool
-		for _, moasPrefix := range moasIPv6 {
-			if moasPrefix.Prefix == prefix {
-				prefixIsMOAS = true
-				break
-			}
+		if _, ok := moasIPv6Lookup[prefix]; ok {
+			prefixIsMOAS = true
 		}
 		for _, receivedByPeers := range origins {
 			prefixPeers = append(prefixPeers, receivedByPeers...)
